@@ -225,3 +225,14 @@ class ReplicaExchangeOutputAnalyzer():
 
     ''' 
     pass
+
+def make_sams():
+    '''
+    Run sams across a handful of lambdas 
+    get the mu and sigmas of the alchemical states
+    explore different numbers of replicas with the back calculated appropriate
+    mu and sigmas (dmu dsigma wrt lambda) and run hremd with
+    overlaps that equal desired exchange probability
+    seed the hremd sims with structures taken from frames corresponding to energies
+    at mu of the hremd system.
+    '''
