@@ -124,7 +124,7 @@ def make_hremd_simulation(structure=None, system=None,
                 timestep=2*femtosecond,
                 lambda_values=None,
                 lambda_selection='protein',
-                lambda_terms=['electrostatics,sterics,torsions'],
+                lambda_terms=['electrostatics','sterics','torsions'],
                 run_time=200*nanosecond,):
     '''
     Return a ReplicaExchangeSimulation object

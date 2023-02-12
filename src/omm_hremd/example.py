@@ -11,7 +11,7 @@ from openmmtools import *
 from openmmtools.multistate import MultiStateReporter, MultiStateSampler, ReplicaExchangeAnalyzer, ReplicaExchangeSampler
 from sys import stdout
 from omm_hremd.replex_tools import *
-from cg_openmm.rep_exch import extract_trajectory
+from cg_openmm.simulation.rep_exch import extract_trajectory
 
 import shutil
 
