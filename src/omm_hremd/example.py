@@ -13,6 +13,9 @@ from sys import stdout
 from omm_hremd.replex_tools import *
 from cg_openmm.rep_exch import extract_trajectory
 
+import shutil
+
+run = 1
 base_dir = '/Users/danielburns/Library/CloudStorage/Box-Box'
 output_dir = '/Users/danielburns/Library/CloudStorage/Box-Box/notebooks/output_test'
 structure = f'{base_dir}/notebooks/omm_replex_sandbox/output/1zip_10ns.pdb'
@@ -54,7 +57,10 @@ hremd =  make_hremd_simulation(structure,
 hremd.run(1000000)
 
 
-make_replica_dcd_files(
+## Need to change rep_exch.py to allow for saving trajectories to a specified directory
+## for now can just shutile.move() to specified directory
+## I guess make_replica_dcd_files are the continuous trajectories that move up and down through temperature..
+make_state_dcd_files(
     topology, timestep=timestep, time_interval=5,
     output_dir=output_dir, output_data="run_output.nc", checkpoint_data="run_output_checkpoint.nc",
     frame_begin=0, frame_stride=1, center=False):
@@ -62,5 +68,21 @@ make_replica_dcd_files(
 # trajectory files will be labeled f"{output_dir}/replica_{replica_index+1}.dcd"
 
 # Remove Waters and Center
+xtc_directory = 'processed_xtc_files'
+# place to store the xtc trajectories
+make_directory(xtc_directory)
+
+# move the generically named dcd files that cg_openmm.rep_exch.make_replica_dcd_files produced to a separate dir and add the run number to them
+old_dcds = 'old_dcd_files'
+make_directory(old_dcds)
+
+for replica_index in range(n_replicas):
+    dcd_file = f"{output_dir}/replica_{replica_index+1}.dcd"
+    center_traj(structure, dcd_file, output=f'{xtc_directory}/traj_{run}_rep_{replica_index+1}.xtc', remove_waters=True,
+                selection_string='protein')
+    shutil.move(dcd_file, f'{old_dcds}/run_{run}_replica_{replica_index+1}.dcd')
+
+
+
 
     

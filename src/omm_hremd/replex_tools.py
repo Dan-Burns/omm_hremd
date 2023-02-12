@@ -2,20 +2,28 @@ import openmm
 from openmm import *
 from openmm.app import *
 from openmm.unit import *
+
 import parmed
+
 import numpy   as np
 import pandas  as pd
+
 import MDAnalysis as mda
+from MDAnalysis.analysis import align
+
 import openmmtools
 from openmmtools import *
 from openmmtools.multistate import MultiStateReporter, MultiStateSampler, ReplicaExchangeAnalyzer, ReplicaExchangeSampler
+
 from sys import stdout
+import os
 
 
 
 ##### Helper Functions ########
 #### Can move these to a utils.py ######
 # generate the lambdas
+# openmm docs somewhere have something like this.  This was taken from plumed.
 def geometric_progression(tmin, tmax, n):
     '''
     make a geometric progression of temperatures in attempt to keep energy overlap consistent
@@ -190,6 +198,9 @@ def make_hremd_simulation(structure=None, system=None,
     return simulation
     
 def open_xml(file):
+    '''
+    Used for opening a system.xml file
+    '''
     with open(file) as infile:
         data = XmlSerializer.deserialize(infile.read())
         return data
@@ -216,10 +227,47 @@ def test_exchange_rate(self, target_exchange_rate=0.10):
     '''
     pass
 
-def make_gromacs_files():
+def make_gromacs_files(structure, forcefield='amber14-all.xml', solvent_forcefield='amber14/tip3pfb.xml',
+                        output_top='gromacs_SYSTEM.top', output_gro='gromacs_SYSTEM.gro', ):
     '''
+    Best to use when making the original system since you have to make a separate
+    system with rigidWater=False
     use for post processing and recentering trajectories with gmx trjconv
+    structure: str
+        path to pdb file of the solvated system
+    
+    forcefield: str
+        openmm forcefield to use for generating the system
+        If you're only going to use the gromacs files for rewrapping a trajectory, the choice of 
+        forcefield shouldn't matter.
+
+    solvent_forcefiled: str
+        openmm solvent forcefield
+        
     '''
+    print('Saving gromacs topology and .gro files in case you want to use them for post-processing.')
+    topology, positions = PDBFile(structure).topology, PDBFile(structure).positions
+
+    # https://github.com/ParmEd/ParmEd/issues/1030
+    ff = ForceField(forcefield, solvent_forcefield)
+
+    omm_system = ff.createSystem(topology, rigidWater=False)
+
+    pmd_structure = parmed.openmm.load_topology(topology, system=omm_system, xyz=positions)
+
+    pmd_structure.save(output_top, overwrite=True)
+    pmd_structure.save(output_gro, overwrite=True)
+
+def make_gromacs_tpr(top_file='gromacs_SYSTEM.top', gro_file='gromacs_SYSTEM.gro', index_file=None):
+    '''
+    Need a robust way of making the index and tpr files that you need for rewrapping with pbc conditions
+    BioExcel Building Blocks might be good here 
+    grompp https://biobb-gromacs.readthedocs.io/en/latest/gromacs.html#module-gromacs.grompp
+    make_ndx https://biobb-gromacs.readthedocs.io/en/latest/gromacs.html#module-gromacs.make_ndx
+    trjconv https://biobb-analysis.readthedocs.io/en/latest/gromacs.html#module-gromacs.gmx_trjconv_trj
+    https://mmb.irbbarcelona.org/biobb/
+    '''
+
 
 class ReplicaExchangeOutputAnalyzer():
     '''
@@ -239,3 +287,36 @@ def make_sams():
     seed the hremd sims with structures taken from frames corresponding to energies
     at mu of the hremd system.
     '''
+
+
+def make_directory(path_to_directory):
+
+    if os.path.exists(path_to_directory):
+        print(f'{path_to_directory} already exists')
+        pass
+    else:
+        os.makedirs(path_to_directory)
+
+def center_traj(structure, trajectory, output='traj_no_hoh.xtc', remove_waters=True,
+                selection_string='protein'):
+    '''
+    Use mdanalysis to process out the waters from a trajectory and center it.
+    structure: str
+        pdb file used as input for simulation
+    trajectory: str
+        path to the trajectory you want to process
+    output: str
+        path to output file. (must have a trajectory extension acceptable to mdanalysis)
+
+    remove_waters: Bool
+    
+    selection_string: str
+        Mdanalysis compatible selection of the system components you want in the output trajectory
+    '''
+
+    u = mda.Universe(structure, trajectory)
+
+    selection = u.select_atoms(selection_string)
+
+    aligner = align.AlignTraj(u, u.trajectory[0], select=selection,
+                                filename=output).run()
