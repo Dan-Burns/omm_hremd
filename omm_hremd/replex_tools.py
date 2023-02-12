@@ -18,6 +18,8 @@ from openmmtools.multistate import MultiStateReporter, MultiStateSampler, Replic
 from sys import stdout
 import os
 
+import shutil
+
 
 
 ##### Helper Functions ########
@@ -124,7 +126,7 @@ def make_hremd_simulation(structure=None, system=None,
                 timestep=2*femtosecond,
                 lambda_values=None,
                 lambda_selection='protein',
-                lambda_terms=['electrostatics','sterics','torsions'],
+                lambda_terms=['lambda_electrostatics','lambda_sterics','lambda_torsions'],
                 run_time=200*nanosecond,):
     '''
     Return a ReplicaExchangeSimulation object
@@ -315,8 +317,17 @@ def center_traj(structure, trajectory, output='traj_no_hoh.xtc', remove_waters=T
     '''
 
     u = mda.Universe(structure, trajectory)
-
+    ref = mda.Universe(structure)
     selection = u.select_atoms(selection_string)
 
-    aligner = align.AlignTraj(u, u.trajectory[0], select=selection,
+    with mda.Writer(f'{output}_not_aligned.xtc', selection.n_atoms) as w:
+        for ts in u.trajectory:
+            w.write(selection.atoms)
+    
+    u = mda.Merge(selection)
+    u.load_new(f'{output}_not_aligned.xtc')
+
+    align.AlignTraj(u, u, select=selection_string,
                                 filename=output).run()
+    
+    os.remove(f'{output}_not_aligned.xtc')
