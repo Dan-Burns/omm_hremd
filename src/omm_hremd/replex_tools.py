@@ -125,8 +125,7 @@ def make_hremd_simulation(structure=None, system=None,
     positions, topology = pdb.positions, pdb.topology
 
     # open the system
-    with open(system) as infile:
-        system = XmlSerializer.deserialize(infile.read())
+    system = open_xml(system)
 
     ### Parmed uses amber masks for selection strings or you can turn the system into a df
     ### pmd_sys = parmed.openmm.load_topology(pdb.topology, system=system, xyz=pdb.positions)
@@ -190,6 +189,10 @@ def make_hremd_simulation(structure=None, system=None,
 
     return simulation
     
+def open_xml(file):
+    with open(file) as infile:
+        data = XmlSerializer.deserialize(infile.read())
+        return data
 
 def minimize_equilibrate():
     '''
