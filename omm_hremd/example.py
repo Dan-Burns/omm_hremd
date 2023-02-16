@@ -44,9 +44,11 @@ hremd_eq = make_hremd_simulation(structure,
 hremd_eq.minimize()
 hremd_eq.equilibrate(5)
 
+# use the samler states from the short equilibration above
 equilibrated_states = hremd_eq.sampler_states
 hremd =  make_hremd_simulation(structure,
                         system,
+                        sampler_states=equilibrated_states,
                         temperature=base_temperature*kelvin,
                         friction=10/picosecond,
                         output=f'{output_dir}/run_output.nc',
