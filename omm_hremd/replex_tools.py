@@ -207,17 +207,7 @@ def open_xml(file):
         data = XmlSerializer.deserialize(infile.read())
         return data
 
-def minimize_equilibrate():
-    '''
-    These HREMD sims seem to be really sensitive to initial conditions.
-    An equilibrated input file will still blow up when the lambda is applied so this 
-    is intended to try different equilibration timesteps and collision rates to get the systems happy before 
-    moving it to run status.
 
-    Equilibration will need to be confirmed with some metric (potential energy distribution) so that 
-    test_exchange_rate() results can be considered reliable.
-    '''
-    pass
 def test_exchange_rate(self, target_exchange_rate=0.10):
     '''
     do multiple short runs and gradient descent towards a target exchange rate
@@ -331,3 +321,8 @@ def center_traj(structure, trajectory, output='traj_no_hoh.xtc', remove_waters=T
                                 filename=output).run()
     
     os.remove(f'{output}_not_aligned.xtc')
+
+def pdb2pqr():
+    '''
+    Need to add rigorous protonation method
+    '''
