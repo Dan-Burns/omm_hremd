@@ -55,7 +55,7 @@ def generate_lambdas(tmin, tmax, n):
     '''
     Turn a temperature list into a set of lambdas for HREMD
     '''
-    temps = geometric_progression(300, 320, n)
+    temps = geometric_progression(tmin, tmax, n)
     return [min(temps)/temp for temp in temps]
 '''
 class HREMDSimulation():
