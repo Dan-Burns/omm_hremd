@@ -116,7 +116,8 @@ def make_hremd_simulation(structure=None, system=None,
                 sampler_states=None, 
                 box_vectors=None,
                 temperature=300 * kelvin,
-                integrator='LangevinSplittingDynamicsMove',
+                integrator=mcmc.LangevinSplittingDynamicsMove,
+                splitting=None,
                 friction=10/picosecond,
                 platform='None',
                 output='output.nc',
@@ -135,6 +136,7 @@ def make_hremd_simulation(structure=None, system=None,
     positions, topology = pdb.positions, pdb.topology
 
     # open the system
+    ## TODO deal with system object or path to file
     system = open_xml(system)
 
     ### Parmed uses amber masks for selection strings or you can turn the system into a df
@@ -150,8 +152,12 @@ def make_hremd_simulation(structure=None, system=None,
     alchemical_atoms = selection.atoms.ix
 
     # if applying lambda to torsions then AlchemicalRegion(alchemical_torsions=True)
-    alchemical_region = alchemy.AlchemicalRegion(alchemical_atoms=alchemical_atoms,alchemical_torsions=True)
+    if 'lambda_torsions' in lambda_terms:
+        alchemical_region = alchemy.AlchemicalRegion(alchemical_atoms=alchemical_atoms,alchemical_torsions=True)
+    else:
+        alchemical_region = alchemy.AlchemicalRegion(alchemical_atoms=alchemical_atoms)
     factory           = alchemy.AbsoluteAlchemicalFactory()
+
     alchemical_system = factory.create_alchemical_system(system, alchemical_region)
     alchemical_state  = alchemy.AlchemicalState.from_system(alchemical_system)
 
@@ -159,6 +165,11 @@ def make_hremd_simulation(structure=None, system=None,
     # for the Hamiltonian approach - same temperature but different lambdas.
     # TODO deal with missing (or present) temperature units
     protocol = {lambda_term:lambda_values for lambda_term in lambda_terms}
+
+    #plumed uses sqrt lambda electrostatics: G. Bussi, Mol. Phys. 112, 379 (2014).
+    if 'lambda_electrostatics' in lambda_terms:
+        protocol['lambda_electrostatics'] = np.sqrt(protocol['lambda_electrostatics'])
+        print(protocol)
     protocol['temperature'] = [temperature for i in range(len(lambda_values))] 
                 
     
@@ -169,6 +180,7 @@ def make_hremd_simulation(structure=None, system=None,
     box_vectors = system.getDefaultPeriodicBoxVectors()
 
     # Generate the sampler states that will have their positions updated throughought the simulation
+    ## TODO eliminate enumerate()
     if sampler_states is not None:
         pass
     else:
@@ -180,10 +192,18 @@ def make_hremd_simulation(structure=None, system=None,
     # if the simulation errors out, drop timestep to ~ 0.01 femtoseconds
     # and increase collision_rate to ~ 100/picosecond
     # and then run for ~100 moves to get the system to calm down
-    move = mcmc.LangevinSplittingDynamicsMove(timestep=timestep,
-                                                    n_steps=steps_per_move,
-                                            collision_rate=friction
-                                                    )
+    # use default splitting scheme for langevinsplittingdynamics
+    if splitting==None:
+        move = integrator(timestep=timestep,
+                            n_steps=steps_per_move,
+                            collision_rate=friction
+                                    )
+    else:
+        move = integrator(timestep=timestep,
+                            n_steps=steps_per_move,
+                            collision_rate=friction,
+                            splitting=splitting
+                                    ) 
 
 
     # TODO limit exchange attempts to job schedule and extend with cg_openmm restart function
@@ -326,3 +346,6 @@ def pdb2pqr():
     '''
     Need to add rigorous protonation method
     '''
+
+
+###### Ivy Zhang's https://github.com/choderalab/openmmtools/issues/540
