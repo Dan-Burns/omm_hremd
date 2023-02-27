@@ -169,7 +169,7 @@ def make_hremd_simulation(structure=None, system=None,
     #plumed uses sqrt lambda electrostatics: G. Bussi, Mol. Phys. 112, 379 (2014).
     if 'lambda_electrostatics' in lambda_terms:
         protocol['lambda_electrostatics'] = np.sqrt(protocol['lambda_electrostatics'])
-        print(protocol)
+        print(protocol, flush=True)
     protocol['temperature'] = [temperature for i in range(len(lambda_values))] 
                 
     
