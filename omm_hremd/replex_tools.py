@@ -152,10 +152,11 @@ def make_hremd_simulation(structure=None, system=None,
     alchemical_atoms = selection.atoms.ix
 
     # if applying lambda to torsions then AlchemicalRegion(alchemical_torsions=True)
+    # at the moment, the alchemical_sigma argument applies to Dan-Burns/openmmtools fork
     if 'lambda_torsions' in lambda_terms:
-        alchemical_region = alchemy.AlchemicalRegion(alchemical_atoms=alchemical_atoms,alchemical_torsions=True)
+        alchemical_region = alchemy.AlchemicalRegion(alchemical_atoms=alchemical_atoms,alchemical_torsions=True,lambda_sigma=False)
     else:
-        alchemical_region = alchemy.AlchemicalRegion(alchemical_atoms=alchemical_atoms)
+        alchemical_region = alchemy.AlchemicalRegion(alchemical_atoms=alchemical_atoms,alchemical_sigma=False)
     factory           = alchemy.AbsoluteAlchemicalFactory()
 
     alchemical_system = factory.create_alchemical_system(system, alchemical_region)
